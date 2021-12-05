@@ -5,6 +5,10 @@ import sympy
 import logging
 from typing import Tuple
 import constants
+
+from shapely import geometry
+import pdb
+
 import shapely.geometry
 
 
@@ -16,6 +20,7 @@ class Point:
     def __init__(self, x, y):
         self.x = float(x)
         self.y = float(y)
+
 
 
 class Player:
@@ -39,6 +44,111 @@ class Player:
         self.turn = 0
         self.shapely_golf_map = None
 
+
+    def water_boolean(self, poly, grid_points):
+        water_grid = []
+        
+        for i,row in enumerate(grid_points): 
+            water_grid.append([])
+            for j,point in enumerate(row):
+                
+                thebool = poly.contains(point)
+                
+                water_grid[i].append(thebool)
+            
+        print(np.array(water_grid))
+        return np.array(water_grid)
+
+
+
+    def make_grid(self, golf_map: sympy.Polygon,target: sympy.geometry.Point2D,
+        curr_loc: sympy.geometry.Point2D, prev_loc: sympy.geometry.Point2D):
+
+        poly=geometry.Polygon([p.x, p.y] for p in golf_map.vertices)
+        target_shapely = geometry.Point(target[0], target[1])
+        print("convert")
+
+        (xmin, ymin, xmax, ymax) = golf_map.bounds
+        list_of_lists = []
+        list_of_distances=[]
+        
+        queue = []
+        dimension = 10
+        allowed_distance = 100
+        threshold = 20.0
+        amt=1
+        grid_of_scores = np.array(np.ones((dimension,dimension))*100000)
+        
+        
+        xmin = float(xmin)
+        ymin = float(ymin)
+        xmax = float(xmax)
+        ymax = float(ymax)
+        
+        print(xmin,xmax,ymin,ymax)
+        
+        xcoords,ycoords = np.meshgrid(np.linspace(xmin,xmax, dimension),np.linspace(ymin,ymax, dimension))
+
+        for x_index in range(len(xcoords)):
+            list_of_lists.append([])
+            list_of_distances.append([])
+            for y_index in range(len(ycoords)):
+                #considered_point = sympy.geometry.Point2D(xcoords[y_index,x_index],ycoords[y_index,x_index])
+                considered_point = geometry.Point(xcoords[y_index,x_index],ycoords[y_index,x_index])
+                list_of_lists[x_index].append(considered_point)
+                #thedistance = curr_loc.distance(considered_point)
+                #list_of_distances[x_index].append(thedistance)
+                #print(float(considered_point[0]),float(considered_point[1]), float(curr_loc[0]), float(curr_loc[1]))
+        print("test1")
+        water_grid = self.water_boolean(poly, list_of_lists) # True if on LAND
+        for x_index in range(len(list_of_lists)):
+            for y_index in range(len(list_of_lists[0])): 
+                thedistance = target_shapely.distance(list_of_lists[x_index][y_index])
+                print(thedistance)
+                print(allowed_distance)
+                print(water_grid[x_index][y_index] and thedistance < allowed_distance)
+                if (thedistance < allowed_distance) and water_grid[x_index][y_index]:
+                    queue.append((x_index,y_index))
+                    print(queue, "what")
+        print(queue)
+        print("HELL")
+        print(water_grid)
+
+        """BFS stuff"""
+        if thedistance < threshold:
+            grid_of_scores[x_index,y_index] = amt
+        return "hi"
+
+    """graph = {
+  '5' : ['3','7'],
+  '3' : ['2', '4'],
+  '7' : ['8'],
+  '2' : [],
+  '4' : ['8'],
+  '8' : []
+}
+
+visited = [] # List for visited nodes.
+queue = []     #Initialize a queue
+
+def bfs(visited, graph, node): #function for BFS
+  visited.append(node)
+  queue.append(node)
+
+  while queue:          # Creating loop to visit each node
+    m = queue.pop(0) 
+    print (m, end = " ") 
+
+    for neighbour in graph[m]:
+      if neighbour not in visited:
+        visited.append(neighbour)
+        queue.append(neighbour)
+
+# Driver Code
+print("Following is the Breadth-First Search")
+bfs(visited, graph, '5')    # function calling"""
+
+
     def play(self, score: int, golf_map: sympy.Polygon, target: sympy.geometry.Point2D,
              curr_loc: sympy.geometry.Point2D, prev_loc: sympy.geometry.Point2D,
              prev_landing_point: sympy.geometry.Point2D, prev_admissible: bool) -> Tuple[float, float]:
@@ -56,8 +166,12 @@ class Player:
         Returns:
             Tuple[float, float]: Return a tuple of distance and angle in radians to play the shot
         """
+
+
         if self.turn == 0:
+            a = self.make_grid(golf_map,target,curr_loc, prev_loc)
             self.shapely_golf_map = shapely.geometry.polygon.Polygon(golf_map.vertices)
+
 
         self.turn += 1
         # 1. always try greedy first
@@ -223,4 +337,5 @@ class Player:
         desire_distance = get_distance(curr_loc, safe_point)
         desire_angle = sympy.atan2(safe_point.y - curr_loc.y, safe_point.x - curr_loc.x)
         return (desire_distance, desire_angle)
+
 
