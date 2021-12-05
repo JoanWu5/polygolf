@@ -8,19 +8,18 @@ import constants
 
 from shapely import geometry
 import pdb
-
+import math
 import shapely.geometry
 
 
 def get_distance(point1, point2):
-    return pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2)
+    return math.sqrt(pow(point1.x - point2.x, 2) + pow(point1.y - point2.y, 2))
 
 
 class Point:
     def __init__(self, x, y):
         self.x = float(x)
         self.y = float(y)
-
 
 
 class Player:
@@ -44,79 +43,74 @@ class Player:
         self.turn = 0
         self.shapely_golf_map = None
 
-
     def water_boolean(self, poly, grid_points):
         water_grid = []
-        
-        for i,row in enumerate(grid_points): 
+
+        for i, row in enumerate(grid_points):
             water_grid.append([])
-            for j,point in enumerate(row):
-                
+            for j, point in enumerate(row):
                 thebool = poly.contains(point)
-                
+
                 water_grid[i].append(thebool)
-            
-        print(np.array(water_grid))
+
+        # print(np.array(water_grid))
         return np.array(water_grid)
 
+    def make_grid(self, golf_map: sympy.Polygon, target: sympy.geometry.Point2D,
+                  curr_loc: sympy.geometry.Point2D, prev_loc: sympy.geometry.Point2D):
 
-
-    def make_grid(self, golf_map: sympy.Polygon,target: sympy.geometry.Point2D,
-        curr_loc: sympy.geometry.Point2D, prev_loc: sympy.geometry.Point2D):
-
-        poly=geometry.Polygon([p.x, p.y] for p in golf_map.vertices)
+        poly = geometry.Polygon([p.x, p.y] for p in golf_map.vertices)
         target_shapely = geometry.Point(target[0], target[1])
-        print("convert")
+        # print("convert")
 
         (xmin, ymin, xmax, ymax) = golf_map.bounds
         list_of_lists = []
-        list_of_distances=[]
-        
+        list_of_distances = []
+
         queue = []
         dimension = 10
         allowed_distance = 100
         threshold = 20.0
-        amt=1
-        grid_of_scores = np.array(np.ones((dimension,dimension))*100000)
-        
-        
+        amt = 1
+        grid_of_scores = np.array(np.ones((dimension, dimension)) * 100000)
+
         xmin = float(xmin)
         ymin = float(ymin)
         xmax = float(xmax)
         ymax = float(ymax)
-        
-        print(xmin,xmax,ymin,ymax)
-        
-        xcoords,ycoords = np.meshgrid(np.linspace(xmin,xmax, dimension),np.linspace(ymin,ymax, dimension))
+
+        # print(xmin, xmax, ymin, ymax)
+
+        xcoords, ycoords = np.meshgrid(np.linspace(xmin, xmax, dimension), np.linspace(ymin, ymax, dimension))
 
         for x_index in range(len(xcoords)):
             list_of_lists.append([])
             list_of_distances.append([])
             for y_index in range(len(ycoords)):
-                #considered_point = sympy.geometry.Point2D(xcoords[y_index,x_index],ycoords[y_index,x_index])
-                considered_point = geometry.Point(xcoords[y_index,x_index],ycoords[y_index,x_index])
+                # considered_point = sympy.geometry.Point2D(xcoords[y_index,x_index],ycoords[y_index,x_index])
+                considered_point = geometry.Point(xcoords[y_index, x_index], ycoords[y_index, x_index])
                 list_of_lists[x_index].append(considered_point)
-                #thedistance = curr_loc.distance(considered_point)
-                #list_of_distances[x_index].append(thedistance)
-                #print(float(considered_point[0]),float(considered_point[1]), float(curr_loc[0]), float(curr_loc[1]))
-        print("test1")
-        water_grid = self.water_boolean(poly, list_of_lists) # True if on LAND
+                # thedistance = curr_loc.distance(considered_point)
+                # list_of_distances[x_index].append(thedistance)
+                # print(float(considered_point[0]),float(considered_point[1]), float(curr_loc[0]), float(curr_loc[1]))
+        # print("test1")
+        water_grid = self.water_boolean(poly, list_of_lists)  # True if on LAND
         for x_index in range(len(list_of_lists)):
-            for y_index in range(len(list_of_lists[0])): 
+            for y_index in range(len(list_of_lists[0])):
                 thedistance = target_shapely.distance(list_of_lists[x_index][y_index])
-                print(thedistance)
-                print(allowed_distance)
-                print(water_grid[x_index][y_index] and thedistance < allowed_distance)
+                # print(thedistance)
+                # print(allowed_distance)
+                # print(water_grid[x_index][y_index] and thedistance < allowed_distance)
                 if (thedistance < allowed_distance) and water_grid[x_index][y_index]:
-                    queue.append((x_index,y_index))
-                    print(queue, "what")
-        print(queue)
-        print("HELL")
-        print(water_grid)
+                    queue.append((x_index, y_index))
+                    # print(queue, "what")
+        # print(queue)
+        # print("HELL")
+        # print(water_grid)
 
         """BFS stuff"""
         if thedistance < threshold:
-            grid_of_scores[x_index,y_index] = amt
+            grid_of_scores[x_index, y_index] = amt
         return "hi"
 
     """graph = {
@@ -148,7 +142,6 @@ def bfs(visited, graph, node): #function for BFS
 print("Following is the Breadth-First Search")
 bfs(visited, graph, '5')    # function calling"""
 
-
     def play(self, score: int, golf_map: sympy.Polygon, target: sympy.geometry.Point2D,
              curr_loc: sympy.geometry.Point2D, prev_loc: sympy.geometry.Point2D,
              prev_landing_point: sympy.geometry.Point2D, prev_admissible: bool) -> Tuple[float, float]:
@@ -167,114 +160,113 @@ bfs(visited, graph, '5')    # function calling"""
             Tuple[float, float]: Return a tuple of distance and angle in radians to play the shot
         """
 
-
         if self.turn == 0:
-            a = self.make_grid(golf_map,target,curr_loc, prev_loc)
+            # a = self.make_grid(golf_map, target, curr_loc, prev_loc)
             self.shapely_golf_map = shapely.geometry.polygon.Polygon(golf_map.vertices)
 
-
         self.turn += 1
-        # 1. always try greedy first
-        required_dist = curr_loc.distance(target)
-        roll_factor = 1. + constants.extra_roll
-        if required_dist < constants.min_putter_dist:
-            roll_factor = 1.0
-        distance = sympy.Min(constants.max_dist + self.skill, required_dist / roll_factor)
-        angle = sympy.atan2(target.y - curr_loc.y, target.x - curr_loc.x)
-
-        is_greedy = True
-        failed_times = 0
-        # simulate the actual situation to ensure fail times will not be larger than self.tolerant_times
-        for _ in range(self.simulate_times):
-            is_succ, final_point = self.simulate_once(distance, angle, curr_loc, golf_map)
-            if not is_succ:
-                failed_times += 1
-                if failed_times > self.tolerant_times:
-                    is_greedy = False
-                    break
-
-        if is_greedy:
-            self.logger.info(str(self.turn) + "select greedy strategy to go")
-            return (distance, angle)
-
-        # 2. if we cannot use greedy, we try to find the points intersected with the golf map
-        if prev_admissible is None or prev_admissible or not self.remember_middle_points:
-            circle = sympy.Circle(curr_loc, distance)
-            # TODO: cost about 6-8 seconds, too slow
-            intersect_points_origin = circle.intersection(golf_map)
-
-            intersect_points_num = len(intersect_points_origin)
-            temp_middle_points = []
-
-            for i in range(intersect_points_num):
-                for j in range(i + 1, intersect_points_num):
-                    middle_point = sympy.Point2D(float(intersect_points_origin[i].x + intersect_points_origin[j].x) / 2,
-                                                 float(intersect_points_origin[i].y + intersect_points_origin[j].y) / 2)
-                    # find points that in the golf map polygon
-                    if golf_map.encloses(middle_point):
-                        temp_middle_points.append(middle_point)
-
-            if len(temp_middle_points) == 0:
-                self.logger.error(str(self.turn) + "cannot find any middle point, BUG!!!")
-                return (distance, angle)
-
-            # if there are many ways to go, delete the points that can go back
-            middle_points = []
-            for i, middle_point in enumerate(temp_middle_points):
-                if middle_point.distance(target) > required_dist:
-                    continue
-                middle_points.append(middle_point)
-
-            # if there we delete every point in temp_middle_points,
-            # which means we could go longer ways than expected, we need to add back those points
-            if len(middle_points) == 0:
-                middle_points = temp_middle_points
-
-            self.remember_middle_points = middle_points
-        else:
-            middle_points = list(self.remember_middle_points)
-
-        middle_points_num = len(middle_points)
-        mid_to_target_distance = [0] * middle_points_num
-        for i, middle_point in enumerate(middle_points):
-            mid_to_target_distance[i] = middle_point.distance(target)
-
-        distance_sorted_indexes = sorted(range(middle_points_num), key=lambda x: mid_to_target_distance[x])
-
-        middle_failed_times = [0] * middle_points_num
-
-        midd_index = -1
-        for i in distance_sorted_indexes:
-            middle_point = middle_points[i]
-            angle = sympy.atan2(middle_point.y - curr_loc.y, middle_point.x - curr_loc.x)
-            for _ in range(self.simulate_times):
-                is_succ, final_point = self.simulate_once(distance, angle, curr_loc, golf_map)
-                if not is_succ:
-                    middle_failed_times[i] += 1
-                    if middle_failed_times[i] > self.tolerant_times:
-                        middle_failed_times[i] = -1
-                        break
-
-            if middle_failed_times[i] != -1:
-                midd_index = i
-                break
-
-        desire_distance = distance
-        if midd_index != -1:
-            self.logger.info(str(self.turn) + "select largest distance to middle point to go")
-            desire_angle = sympy.atan2(middle_points[midd_index].y - curr_loc.y,
-                                       middle_points[midd_index].x - curr_loc.x)
-
-            return (desire_distance, desire_angle)
-
-        # 3. if middle points are still not safe, choose the closest one to the target
-        closest_index = distance_sorted_indexes[0]
-        closest_middle_point = middle_points[closest_index]
-
-        curr_to_mid = closest_middle_point.distance(curr_loc)
-        desire_distance = sympy.Min(constants.max_dist + self.skill, curr_to_mid / roll_factor)
-        desire_angle = sympy.atan2(closest_middle_point.y - curr_loc.y, closest_middle_point.x - curr_loc.x)
-        self.logger.info(str(self.turn) + "risky!!! select closest middle point to go")
+        # version 1:
+        # # 1. always try greedy first
+        # required_dist = curr_loc.distance(target)
+        # roll_factor = 1. + constants.extra_roll
+        # if required_dist < constants.min_putter_dist:
+        #     roll_factor = 1.0
+        # distance = sympy.Min(constants.max_dist + self.skill, required_dist / roll_factor)
+        # angle = sympy.atan2(target.y - curr_loc.y, target.x - curr_loc.x)
+        #
+        # is_greedy = True
+        # failed_times = 0
+        # # simulate the actual situation to ensure fail times will not be larger than self.tolerant_times
+        # for _ in range(self.simulate_times):
+        #     is_succ, final_point = self.simulate_once(distance, angle, curr_loc, golf_map)
+        #     if not is_succ:
+        #         failed_times += 1
+        #         if failed_times > self.tolerant_times:
+        #             is_greedy = False
+        #             break
+        #
+        # if is_greedy:
+        #     self.logger.info(str(self.turn) + "select greedy strategy to go")
+        #     return (distance, angle)
+        #
+        # # 2. if we cannot use greedy, we try to find the points intersected with the golf map
+        # if prev_admissible is None or prev_admissible or not self.remember_middle_points:
+        #     circle = sympy.Circle(curr_loc, distance)
+        #     # TODO: cost about 6-8 seconds, too slow
+        #     intersect_points_origin = circle.intersection(golf_map)
+        #
+        #     intersect_points_num = len(intersect_points_origin)
+        #     temp_middle_points = []
+        #
+        #     for i in range(intersect_points_num):
+        #         for j in range(i + 1, intersect_points_num):
+        #             middle_point = sympy.Point2D(float(intersect_points_origin[i].x + intersect_points_origin[j].x) / 2,
+        #                                          float(intersect_points_origin[i].y + intersect_points_origin[j].y) / 2)
+        #             # find points that in the golf map polygon
+        #             if golf_map.encloses(middle_point):
+        #                 temp_middle_points.append(middle_point)
+        #
+        #     if len(temp_middle_points) == 0:
+        #         self.logger.error(str(self.turn) + "cannot find any middle point, BUG!!!")
+        #         return (distance, angle)
+        #
+        #     # if there are many ways to go, delete the points that can go back
+        #     middle_points = []
+        #     for i, middle_point in enumerate(temp_middle_points):
+        #         if middle_point.distance(target) > required_dist:
+        #             continue
+        #         middle_points.append(middle_point)
+        #
+        #     # if there we delete every point in temp_middle_points,
+        #     # which means we could go longer ways than expected, we need to add back those points
+        #     if len(middle_points) == 0:
+        #         middle_points = temp_middle_points
+        #
+        #     self.remember_middle_points = middle_points
+        # else:
+        #     middle_points = list(self.remember_middle_points)
+        #
+        # middle_points_num = len(middle_points)
+        # mid_to_target_distance = [0] * middle_points_num
+        # for i, middle_point in enumerate(middle_points):
+        #     mid_to_target_distance[i] = middle_point.distance(target)
+        #
+        # distance_sorted_indexes = sorted(range(middle_points_num), key=lambda x: mid_to_target_distance[x])
+        #
+        # middle_failed_times = [0] * middle_points_num
+        #
+        # midd_index = -1
+        # for i in distance_sorted_indexes:
+        #     middle_point = middle_points[i]
+        #     angle = sympy.atan2(middle_point.y - curr_loc.y, middle_point.x - curr_loc.x)
+        #     for _ in range(self.simulate_times):
+        #         is_succ, final_point = self.simulate_once(distance, angle, curr_loc, golf_map)
+        #         if not is_succ:
+        #             middle_failed_times[i] += 1
+        #             if middle_failed_times[i] > self.tolerant_times:
+        #                 middle_failed_times[i] = -1
+        #                 break
+        #
+        #     if middle_failed_times[i] != -1:
+        #         midd_index = i
+        #         break
+        #
+        # desire_distance = distance
+        # if midd_index != -1:
+        #     self.logger.info(str(self.turn) + "select largest distance to middle point to go")
+        #     desire_angle = sympy.atan2(middle_points[midd_index].y - curr_loc.y,
+        #                                middle_points[midd_index].x - curr_loc.x)
+        #
+        #     return (desire_distance, desire_angle)
+        #
+        # # 3. if middle points are still not safe, choose the closest one to the target
+        # closest_index = distance_sorted_indexes[0]
+        # closest_middle_point = middle_points[closest_index]
+        #
+        # curr_to_mid = closest_middle_point.distance(curr_loc)
+        # desire_distance = sympy.Min(constants.max_dist + self.skill, curr_to_mid / roll_factor)
+        # desire_angle = sympy.atan2(closest_middle_point.y - curr_loc.y, closest_middle_point.x - curr_loc.x)
+        # self.logger.info(str(self.turn) + "risky!!! select closest middle point to go")
         return (desire_distance, desire_angle)
 
     def simulate_shapely_once(self, distance, angle, curr_loc, golf_map):
@@ -301,10 +293,9 @@ bfs(visited, graph, '5')    # function calling"""
 
     def get_points_inside_circle(self, points_score, curr_loc, radius, target):
         circle_points = dict()
-        max_dist = radius ** 2
 
         for points in points_score.keys():
-            if get_distance(curr_loc, points) <= max_dist:
+            if get_distance(curr_loc, points) <= radius:
                 circle_points[points] = points_score[points]
 
         sorted_points_score = dict(sorted(circle_points.items(), key=lambda x: x[1]))
@@ -314,14 +305,15 @@ bfs(visited, graph, '5')    # function calling"""
             if value == smallest_score:
                 smallest_score_points[points] = get_distance(target, points)
 
-        closest2target_points = dict(sorted(smallest_score_points.items(), key=lambda x:x[1]))
+        closest2target_points = dict(sorted(smallest_score_points.items(), key=lambda x: x[1]))
         safe_point = None
         unsafe_points2score = dict()
         for point in closest2target_points.keys():
             succ_times = 0
             for _ in range(self.simulate_times):
                 angle = sympy.atan2(point.y - curr_loc.y, point.x - curr_loc.x)
-                is_succ, _ = self.simulate_shapely_once(get_distance(curr_loc, point), angle, curr_loc, self.shapely_golf_map)
+                is_succ, _ = self.simulate_shapely_once(get_distance(curr_loc, point), angle, curr_loc,
+                                                        self.shapely_golf_map)
                 succ_times += is_succ
 
             if succ_times / self.simulate_times >= 1 - self.risk:
@@ -337,5 +329,3 @@ bfs(visited, graph, '5')    # function calling"""
         desire_distance = get_distance(curr_loc, safe_point)
         desire_angle = sympy.atan2(safe_point.y - curr_loc.y, safe_point.x - curr_loc.x)
         return (desire_distance, desire_angle)
-
-
